@@ -1,0 +1,55 @@
+---
+title: "Car Prices in Russia"
+author: "Simeon Evlakhov"
+date: '1 september 2017'
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, echo = FALSE}
+load("data/cars_table.Rda")
+```
+
+## Intro
+
+On the following slide you can see a plot of car prices (Mercedes and Ford) on the Russian secondary market (Moscow region) depending on their year of issue, together with regression lines. The original data was taken in august, 2017. All the prices are in Russian Roubles and **y** axis is logarithmic.  
+
+```{r, message=FALSE}
+library(plotly)
+library(dplyr)
+```
+```{r, message=FALSE}
+cars <- filter(carsTbl, (brand == "Mercedes" | brand == "Ford" ) &  year > 1990 & price > 50000) %>%
+  mutate(brand = droplevels(brand))
+```
+
+```{r, message=FALSE}
+mercedes <- filter(carsTbl, brand == "Mercedes" & year > 1990)
+mercedesLm <- glm( price ~ year, family = poisson(), data = mercedes)
+
+cars$predMerc <- predict(mercedesLm, newdata = cars)
+cars$predMerc <- exp(cars$predMerc)
+```
+
+```{r, message=FALSE}
+ford <- filter(carsTbl, brand == "Ford" & year > 1990)
+fordLm <- glm( price ~ year, family = poisson(), data = ford)
+
+cars$predFord <- predict(fordLm, newdata = cars)
+cars$predFord <- exp(cars$predFord)
+```
+
+## Car Prices
+
+```{r}
+pal <- c("red", "blue")
+
+plot_ly(cars, x = ~year,  color = ~brand, colors = pal) %>%
+  add_markers(y = ~price, alpha = 0.6) %>%
+  add_lines(y = ~predFord, color = I("red"), name = "Ford", line = list(width = 4)) %>%
+  add_lines(y = ~predMerc, color = I("blue"), name = "Mercedes", line = list(width = 4)) %>%
+  layout( yaxis = list(type = "log"))
+```
